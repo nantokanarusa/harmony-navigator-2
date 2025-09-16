@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -22,6 +22,31 @@ export function Header() {
   const pathname = usePathname()
   const { user, streakCount, setUser, setProfile, setValueSettings, reset } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
+
+  const loadUserProfile = useCallback(
+    async (userId: string) => {
+      const supabase = createClient()
+
+      // Load profile
+      const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).single()
+
+      if (profile) {
+        setProfile(profile)
+      }
+
+      // Load value settings
+      const { data: valueSettings } = await supabase
+        .from("value_settings")
+        .select("*")
+        .eq("profile_id", userId)
+        .single()
+
+      if (valueSettings) {
+        setValueSettings(valueSettings)
+      }
+    },
+    [setProfile, setValueSettings],
+  )
 
   useEffect(() => {
     const supabase = createClient()
@@ -57,38 +82,7 @@ export function Header() {
     })
 
     return () => subscription.unsubscribe()
-  }, [setUser, setProfile, setValueSettings, reset])
-
-  const loadUserProfile = async (userId: string) => {
-    const supabase = createClient()
-
-    // Load profile
-    const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).single()
-
-    if (profile) {
-      setProfile(profile)
-    }
-
-    // Load value settings
-    const { data: valueSettings } = await supabase.from("value_settings").select("*").eq("profile_id", userId).single()
-
-    if (valueSettings) {
-      setValueSettings(valueSettings)
-    }
-  }
-
-  const handleSignOut = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push("/")
-  }
-
-  const navigation = [
-    { name: "Dashboard", href: "/dashboard" },
-    { name: "Record", href: "/record" },
-    { name: "Settings", href: "/settings" },
-    { name: "Achievements", href: "/achievements" },
-  ]
+  }, [setUser, loadUserProfile, reset]) // Updated dependency array to use memoized loadUserProfile
 
   if (isLoading) {
     return (
@@ -127,7 +121,12 @@ export function Header() {
 
             {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-1">
-              {navigation.map((item) => (
+              {[
+                { name: "Dashboard", href: "/dashboard" },
+                { name: "Record", href: "/record" },
+                { name: "Settings", href: "/settings" },
+                { name: "Achievements", href: "/achievements" },
+              ].map((item) => (
                 <Link key={item.name} href={item.href}>
                   <Button variant={pathname === item.href ? "secondary" : "ghost"} size="sm">
                     {item.name}
@@ -168,7 +167,7 @@ export function Header() {
                   <Link href="/achievements">Achievements</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="md:hidden" />
-                <DropdownMenuItem onClick={handleSignOut}>Sign out</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {}}>Sign out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
