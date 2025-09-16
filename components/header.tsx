@@ -1,10 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter, usePathname } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
-import { useAppStore } from "@/lib/store"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -18,81 +15,16 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Flame, User } from "lucide-react"
 
 export function Header() {
-  const router = useRouter()
   const pathname = usePathname()
-  const { user, streakCount, setUser, setProfile, setValueSettings, reset } = useAppStore()
-  const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    const supabase = createClient()
-
-    const loadUserProfile = async (userId: string) => {
-      const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).single()
-
-      if (profile) {
-        setProfile(profile)
-      }
-
-      const { data: valueSettings } = await supabase
-        .from("value_settings")
-        .select("*")
-        .eq("profile_id", userId)
-        .single()
-
-      if (valueSettings) {
-        setValueSettings(valueSettings)
-      }
-    }
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email!,
-          user_name: session.user.user_metadata?.user_name,
-        })
-        loadUserProfile(session.user.id)
-      }
-      setIsLoading(false)
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email!,
-          user_name: session.user.user_metadata?.user_name,
-        })
-        await loadUserProfile(session.user.id)
-      } else {
-        reset()
-      }
-      setIsLoading(false)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [setUser, setProfile, setValueSettings, reset])
-
-  if (isLoading) {
-    return (
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
-            <div className="h-6 w-32 bg-muted rounded animate-pulse" />
-          </div>
-        </div>
-      </header>
-    )
-  }
+  const isAuthenticated = false // Static placeholder
+  const streakCount = 5 // Static placeholder
 
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Link href={user ? "/dashboard" : "/"} className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2">
             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
               <span className="text-white font-bold text-sm">H</span>
             </div>
@@ -100,7 +32,7 @@ export function Header() {
           </Link>
         </div>
 
-        {user ? (
+        {isAuthenticated ? (
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-orange-50 dark:bg-orange-950">
               <Flame className="h-4 w-4 text-orange-500" />
@@ -137,8 +69,8 @@ export function Header() {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{user.user_name || "User"}</p>
-                    <p className="w-[200px] truncate text-sm text-muted-foreground">{user.email}</p>
+                    <p className="font-medium">Welcome, Guest</p>
+                    <p className="w-[200px] truncate text-sm text-muted-foreground">guest@example.com</p>
                   </div>
                 </div>
                 <DropdownMenuSeparator />
