@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -23,18 +23,16 @@ export function Header() {
   const { user, streakCount, setUser, setProfile, setValueSettings, reset } = useAppStore()
   const [isLoading, setIsLoading] = useState(true)
 
-  const loadUserProfile = useCallback(
-    async (userId: string) => {
-      const supabase = createClient()
+  useEffect(() => {
+    const supabase = createClient()
 
-      // Load profile
+    const loadUserProfile = async (userId: string) => {
       const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).single()
 
       if (profile) {
         setProfile(profile)
       }
 
-      // Load value settings
       const { data: valueSettings } = await supabase
         .from("value_settings")
         .select("*")
@@ -44,14 +42,8 @@ export function Header() {
       if (valueSettings) {
         setValueSettings(valueSettings)
       }
-    },
-    [setProfile, setValueSettings],
-  )
+    }
 
-  useEffect(() => {
-    const supabase = createClient()
-
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({
@@ -64,7 +56,6 @@ export function Header() {
       setIsLoading(false)
     })
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -82,7 +73,7 @@ export function Header() {
     })
 
     return () => subscription.unsubscribe()
-  }, [setUser, loadUserProfile, reset]) // Updated dependency array to use memoized loadUserProfile
+  }, [setUser, setProfile, setValueSettings, reset])
 
   if (isLoading) {
     return (
@@ -111,7 +102,6 @@ export function Header() {
 
         {user ? (
           <div className="flex items-center space-x-4">
-            {/* Streak Counter */}
             <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-orange-50 dark:bg-orange-950">
               <Flame className="h-4 w-4 text-orange-500" />
               <Badge variant="secondary" className="bg-transparent border-0 p-0">
@@ -119,7 +109,6 @@ export function Header() {
               </Badge>
             </div>
 
-            {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-1">
               {[
                 { name: "Dashboard", href: "/dashboard" },
@@ -135,7 +124,6 @@ export function Header() {
               ))}
             </nav>
 
-            {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full">
